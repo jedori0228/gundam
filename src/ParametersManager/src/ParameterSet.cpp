@@ -437,23 +437,25 @@ void ParameterSet::throwParameters(bool rethrowIfNotInPhysical_, double gain_){
           }
 
           bool throwIsValid = true; // default case
+/*
           LogInfo << "Check that thrown parameters are within bounds..."
                   << std::endl;
+*/
 
           for( auto& par : this->getParameterList() ){
             if( not ParameterSet::isValidCorrelatedParameter(par) ) continue;
             if( not std::isnan(par.getMinValue())
                 and par.getThrowValue() < par.getMinValue() ){
               throwIsValid = false;
-              LogAlert << "thrown value lower than min bound -> "
-                       << par.getSummary() << std::endl;
+              //LogAlert << "thrown value lower than min bound -> "
+              //         << par.getSummary() << std::endl;
               break;
             }
             if( not std::isnan(par.getMaxValue())
                 and par.getThrowValue() > par.getMaxValue() ){
               throwIsValid = false;
-              LogAlert <<"thrown value higher than max bound -> "
-                       << par.getSummary() << std::endl;
+              //LogAlert <<"thrown value higher than max bound -> "
+              //         << par.getSummary() << std::endl;
               break;
             }
 
@@ -475,7 +477,7 @@ void ParameterSet::throwParameters(bool rethrowIfNotInPhysical_, double gain_){
           }
 
           if (not throwIsValid) {
-            LogAlert << "Rethrowing \"" << this->getName() << "\"... try #" << nTries+1 << std::endl;
+            //LogAlert << "Rethrowing \"" << this->getName() << "\"... try #" << nTries+1 << std::endl;
             LogThrowIf(nTries > 10000, "Failed to find valid throw");
             continue;
           }
@@ -496,6 +498,7 @@ void ParameterSet::throwParameters(bool rethrowIfNotInPhysical_, double gain_){
             }
           }
 
+/*
           // alright at this point it's fine, print them
           for( auto& par : _parameterList_ ){
             if( ParameterSet::isValidCorrelatedParameter(par) ){
@@ -510,6 +513,7 @@ void ParameterSet::throwParameters(bool rethrowIfNotInPhysical_, double gain_){
               LogInfo << " becomes " << eigenPar.getParameterValue() << std::endl;
             }
           }
+*/
           break;
         }
       }; // End of generic function handling multiple throws
@@ -545,9 +549,11 @@ void ParameterSet::throwParameters(bool rethrowIfNotInPhysical_, double gain_){
   }
   else if( _useEigenDecompForThrows_ and isEnableEigenDecomp() ){
     // Throw using a deprecated alternative method.  Do not use.
+/*
     LogAlert << "Alternative toy generator used: Eigen Decomposition Generator"
              << std::endl;
     LogInfo << "Throwing eigen parameters for " << _name_ << std::endl;
+*/
 
     int nTries{0};
     bool throwIsValid{false};
@@ -560,40 +566,44 @@ void ParameterSet::throwParameters(bool rethrowIfNotInPhysical_, double gain_){
 
       throwIsValid = true;
       if( true ){
-        LogInfo << "Checking if the thrown parameters of the set are within bounds..." << std::endl;
+        //LogInfo << "Checking if the thrown parameters of the set are within bounds..." << std::endl;
 
         for( auto& par : this->getEffectiveParameterList() ){
           if( not std::isnan(par.getMinValue()) and par.getParameterValue() < par.getMinValue() ){
             throwIsValid = false;
+/*
             LogAlert << GenericToolbox::ColorCodes::redLightText << "thrown value lower than min bound -> " << GenericToolbox::ColorCodes::resetColor
                      << par.getSummary() << std::endl;
+*/
           }
           else if( not std::isnan(par.getMaxValue()) and par.getParameterValue() > par.getMaxValue() ){
             throwIsValid = false;
+/*
             LogAlert << GenericToolbox::ColorCodes::redLightText <<"thrown value higher than max bound -> " << GenericToolbox::ColorCodes::resetColor
                      << par.getSummary() << std::endl;
+*/
           }
         }
 
         if( not throwIsValid ){
-          LogAlert << "Rethrowing \"" << this->getName() << "\"... try #" << nTries+1 << std::endl;
+          //LogAlert << "Rethrowing \"" << this->getName() << "\"... try #" << nTries+1 << std::endl;
           nTries++;
           continue;
         }
         else{
-          LogInfo << "Keeping throw after " << nTries << " attempt(s)." << std::endl;
+          //LogInfo << "Keeping throw after " << nTries << " attempt(s)." << std::endl;
         }
       } // check bounds?
 
       for( auto& par : _parameterList_ ){
-        LogInfo << "Thrown par (through eigen decomp) " << par.getTitle() << ": " << par.getPriorValue();
+        //LogInfo << "Thrown par (through eigen decomp) " << par.getTitle() << ": " << par.getPriorValue();
         par.setThrowValue(par.getParameterValue());
-        LogInfo << " → " << par.getParameterValue() << std::endl;
+        //LogInfo << " → " << par.getParameterValue() << std::endl;
       }
     }
   }
   else {
-      LogInfo << "Throwing parameters for " << _name_ << " using Cholesky matrix" << std::endl;
+      //LogInfo << "Throwing parameters for " << _name_ << " using Cholesky matrix" << std::endl;
 
       if( not _correlatedVariableThrower_.isInitialized() ){
         _correlatedVariableThrower_.setCovarianceMatrixPtr(_strippedCovarianceMatrix_.get());
