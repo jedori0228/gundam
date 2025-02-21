@@ -8,7 +8,6 @@
 
 #include "Logger.h"
 #include "CmdLineParser.h"
-#include "GenericToolbox.Json.h"
 #include "GenericToolbox.Root.h"
 #include "GenericToolbox.Utils.h"
 #include "GenericToolbox.Map.h"
@@ -21,14 +20,7 @@
 #include <vector>
 
 
-LoggerInit([]{
-  Logger::getUserHeader() << "[" << FILENAME << "]";
-});
-
-
 int main(int argc, char** argv){
-
-  using namespace GundamUtils;
 
   GundamApp app{"toy generator tool"};
 
@@ -52,6 +44,7 @@ int main(int argc, char** argv){
   clParser.addTriggerOption("dryRun", {"-d", "--dry-run"}, "Only overrides fitter config and print it.");
   clParser.addTriggerOption("useBf", {"--use-bf"}, "Use best-fit as x-sec value instead of mean of toys.");
   clParser.addTriggerOption("usePreFit", {"--use-prefit"}, "Use prefit covariance matrices for the toy throws.");
+  clParser.addTriggerOption("debugVerbose", {"--debug"}, "Add debug verbose.");
 
   LogInfo << "Usage: " << std::endl;
   LogInfo << clParser.getConfigSummary() << std::endl << std::endl;
@@ -63,10 +56,14 @@ int main(int argc, char** argv){
   LogInfo << "Provided arguments: " << std::endl;
   LogInfo << clParser.getValueSummary() << std::endl << std::endl;
 
+
+  GundamGlobals::setIsDebug(clParser.isOptionTriggered("debugVerbose"));
+
   // Sanity checks
   LogThrowIf(not clParser.isOptionTriggered("configFile"), "Toy generator config file not provided.");
   LogThrowIf(not clParser.isOptionTriggered("fitterFile"), "Did not provide the output fitter file.");
   LogThrowIf(not clParser.isOptionTriggered("nToys"), "Did not provide number of toys.");
+
 
   // Global parameters
   gRandom = new TRandom3(0);     // Initialize with a UUID
@@ -95,7 +92,12 @@ int main(int argc, char** argv){
 
     RootUtils::ObjectReader::throwIfNotFound = true;
 
-    RootUtils::ObjectReader::readObject<TNamed>(fitterRootFile.get(), {{"gundam/config_TNamed"}, {"gundamFitter/unfoldedConfig_TNamed"}}, [&](TNamed* config_){
+    RootUtils::ObjectReader::readObject<TNamed>(
+        fitterRootFile.get(),
+        {{"gundam/config/unfoldedJson_TNamed"},
+         {"gundam/config_TNamed"},
+         {"gundamFitter/unfoldedConfig_TNamed"}},
+        [&](TNamed* config_){
       fitterConfig = GenericToolbox::Json::readConfigJsonStr( config_->GetTitle() );
     });
   }
@@ -112,22 +114,24 @@ int main(int argc, char** argv){
 
   // Disabling defined fit samples:
   LogInfo << "Removing defined samples..." << std::endl;
-  GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/likelihoodInterfaceConfig/dataSetManagerConfig/propagatorConfig/sampleSetConfig/sampleList" );
-  GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/likelihoodInterfaceConfig/dataSetManagerConfig/propagatorConfig/fitSampleSetConfig/fitSampleList" );
+  GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/likelihoodInterfaceConfig/propagatorConfig/sampleSetConfig/sampleList" );
+  GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/likelihoodInterfaceConfig/propagatorConfig/sampleSetConfig/sampleList" );
+  GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/likelihoodInterfaceConfig/propagatorConfig/fitSampleSetConfig/fitSampleList" );
   GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/propagatorConfig/fitSampleSetConfig/fitSampleList" );
 
   // Disabling defined plots:
   LogInfo << "Removing defined plots..." << std::endl;
-  GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/likelihoodInterfaceConfig/dataSetManagerConfig/propagatorConfig/plotGeneratorConfig" );
+  GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/likelihoodInterfaceConfig/propagatorConfig/plotGeneratorConfig" );
+  GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/likelihoodInterfaceConfig/propagatorConfig/plotGeneratorConfig" );
   GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/propagatorConfig/plotGeneratorConfig" );
 
   // Defining signal samples
-  JsonType toyConfig{ ConfigUtils::readConfigFile( clParser.getOptionVal<std::string>("configFile") ) };
+  auto toyConfig{ ConfigUtils::readConfigFile( clParser.getOptionVal<std::string>("configFile") ) };
   cHandler.override( toyConfig );
 
   if( clParser.isOptionTriggered("fitSampleSetConfig") ){
     JsonType fitSampleSetConfig_new{ ConfigUtils::readConfigFile( clParser.getOptionVal<std::string>("fitSampleSetConfig") ) };
-    cHandler.getConfig()["fitterEngineConfig"]["likelihoodInterfaceConfig"]["dataSetManagerConfig"]["propagatorConfig"]["fitSampleSetConfig"]["fitSampleList"] = fitSampleSetConfig_new["fitSampleList"];
+    cHandler.getConfig()["fitterEngineConfig"]["likelihoodInterfaceConfig"]["propagatorConfig"]["fitSampleSetConfig"]["fitSampleList"] = fitSampleSetConfig_new["fitSampleList"];
   }
   if( clParser.isOptionTriggered("plotGeneratorConfig") ){
     std::vector< std::string > plotConfigKeysToCopy = {
@@ -137,7 +141,7 @@ int main(int argc, char** argv){
     };
     JsonType plotGeneratorConfig_new{ ConfigUtils::readConfigFile( clParser.getOptionVal<std::string>("plotGeneratorConfig") ) };
     for(const auto& k: plotConfigKeysToCopy){
-      cHandler.getConfig()["fitterEngineConfig"]["likelihoodInterfaceConfig"]["dataSetManagerConfig"]["propagatorConfig"]["plotGeneratorConfig"][k] = plotGeneratorConfig_new[k];
+      cHandler.getConfig()["fitterEngineConfig"]["likelihoodInterfaceConfig"]["plotGeneratorConfig"][k] = plotGeneratorConfig_new[k];
     }
   }
 
@@ -161,6 +165,7 @@ int main(int argc, char** argv){
     auto selectedDataEntry = clParser.getOptionVal<std::string>("useDataEntry", 0);
     // Do something better in case multiple datasets are defined
     bool isFound{false};
+
     for( auto& dataSet : fitter.getLikelihoodInterface().getDatasetList() ){
       if( GenericToolbox::isIn( selectedDataEntry, dataSet.getDataDispenserDict() ) ){
         LogWarning << "Using data entry \"" << selectedDataEntry << "\" for dataset: " << dataSet.getName() << std::endl;
@@ -258,6 +263,8 @@ int main(int argc, char** argv){
     );
   }
 
+
+
   // Creating output file
   std::string outFilePath{};
   if( clParser.isOptionTriggered("outputFile") ){ outFilePath = clParser.getOptionVal<std::string>("outputFile"); }
@@ -274,7 +281,7 @@ int main(int argc, char** argv){
 
     outFilePath = "ToyGeneration_" + GundamUtils::generateFileName(clParser, appendixDict) + ".root";
 
-    std::string outFolder{GenericToolbox::Json::fetchValue<std::string>(toyConfig, "outputFolder", "./")};
+    auto outFolder(GenericToolbox::Json::fetchValue<std::string>(toyConfig, "outputFolder", "./"));
     outFilePath = GenericToolbox::joinPath(outFolder, outFilePath);
   }
 
@@ -426,6 +433,15 @@ int main(int argc, char** argv){
 
     // Do the throwing:
     throwTimer.start();
+/*
+    // TODO CHECK
+    if(clParser.isOptionTriggered("usePreFit")){
+      propagator.getParametersManager().throwParameters();
+    }
+    else{
+      propagator.getParametersManager().throwParametersFromGlobalCovariance( not GundamGlobals::isDebug() );
+    }
+*/
     propagator.getParametersManager().throwParametersFromGlobalCovariance( not GundamGlobals::isDebug() );
     throwTimer.stop();
 
@@ -531,7 +547,13 @@ int main(int argc, char** argv){
 
     const ToyData* xsecDataPtr{nullptr};
     for( auto& xsecData : ToyDataList ){
+/*
       if( xsecData.samplePtr  == histHolder.samplePtr){
+        xsecDataPtr = &xsecData;
+        break;
+      }
+*/
+      if( (xsecData.samplePtr)->getName()  == (histHolder.samplePtr)->getName()){
         xsecDataPtr = &xsecData;
         break;
       }
