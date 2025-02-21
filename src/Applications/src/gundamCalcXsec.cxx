@@ -115,14 +115,12 @@ int main(int argc, char** argv){
   // Disabling defined fit samples:
   LogInfo << "Removing defined samples..." << std::endl;
   GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/likelihoodInterfaceConfig/propagatorConfig/sampleSetConfig/sampleList" );
-  GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/likelihoodInterfaceConfig/dataSetManagerConfig/propagatorConfig/sampleSetConfig/sampleList" );
-  GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/likelihoodInterfaceConfig/dataSetManagerConfig/propagatorConfig/fitSampleSetConfig/fitSampleList" );
+  GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/likelihoodInterfaceConfig/propagatorConfig/fitSampleSetConfig/fitSampleList" );
   GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/propagatorConfig/fitSampleSetConfig/fitSampleList" );
 
   // Disabling defined plots:
   LogInfo << "Removing defined plots..." << std::endl;
   GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/likelihoodInterfaceConfig/propagatorConfig/plotGeneratorConfig" );
-  GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/likelihoodInterfaceConfig/dataSetManagerConfig/propagatorConfig/plotGeneratorConfig" );
   GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/propagatorConfig/plotGeneratorConfig" );
 
   // Defining signal samples
@@ -131,7 +129,7 @@ int main(int argc, char** argv){
 
   if( clParser.isOptionTriggered("fitSampleSetConfig") ){
     JsonType fitSampleSetConfig_new{ ConfigUtils::readConfigFile( clParser.getOptionVal<std::string>("fitSampleSetConfig") ) };
-    cHandler.getConfig()["fitterEngineConfig"]["likelihoodInterfaceConfig"]["dataSetManagerConfig"]["propagatorConfig"]["fitSampleSetConfig"]["fitSampleList"] = fitSampleSetConfig_new["fitSampleList"];
+    cHandler.getConfig()["fitterEngineConfig"]["likelihoodInterfaceConfig"]["propagatorConfig"]["fitSampleSetConfig"]["fitSampleList"] = fitSampleSetConfig_new["fitSampleList"];
   }
   if( clParser.isOptionTriggered("plotGeneratorConfig") ){
     std::vector< std::string > plotConfigKeysToCopy = {
@@ -141,7 +139,7 @@ int main(int argc, char** argv){
     };
     JsonType plotGeneratorConfig_new{ ConfigUtils::readConfigFile( clParser.getOptionVal<std::string>("plotGeneratorConfig") ) };
     for(const auto& k: plotConfigKeysToCopy){
-      cHandler.getConfig()["fitterEngineConfig"]["likelihoodInterfaceConfig"]["dataSetManagerConfig"]["propagatorConfig"]["plotGeneratorConfig"][k] = plotGeneratorConfig_new[k];
+      cHandler.getConfig()["fitterEngineConfig"]["likelihoodInterfaceConfig"]["plotGeneratorConfig"][k] = plotGeneratorConfig_new[k];
     }
   }
 
@@ -664,6 +662,15 @@ int main(int argc, char** argv){
 
     // Do the throwing:
     throwTimer.start();
+/*
+    // TODO CHECK
+    if(clParser.isOptionTriggered("usePreFit")){
+      propagator.getParametersManager().throwParameters();
+    }
+    else{
+      propagator.getParametersManager().throwParametersFromGlobalCovariance( not GundamGlobals::isDebug() );
+    }
+*/
     propagator.getParametersManager().throwParametersFromGlobalCovariance( not GundamGlobals::isDebug() );
     throwTimer.stop();
 
