@@ -121,6 +121,7 @@ int main(int argc, char** argv){
   // Disabling defined plots:
   LogInfo << "Removing defined plots..." << std::endl;
   GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/likelihoodInterfaceConfig/propagatorConfig/plotGeneratorConfig" );
+  GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/likelihoodInterfaceConfig/plotGeneratorConfig" );
   GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/propagatorConfig/plotGeneratorConfig" );
 
   // Defining signal samples
