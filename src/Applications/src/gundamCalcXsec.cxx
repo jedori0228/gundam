@@ -45,6 +45,7 @@ int main(int argc, char** argv){
   clParser.addTriggerOption("useBfAsXsec", {"--use-bf-as-xsec"}, "Use best-fit as x-sec value instead of mean of toys.");
   clParser.addTriggerOption("usePreFit", {"--use-prefit"}, "Use prefit covariance matrices for the toy throws.");
   clParser.addTriggerOption("debugVerbose", {"--debug"}, "Add debug verbose.");
+  clParser.addTriggerOption("TurnG4Off", {"--TurnG4Off"}, "Turn off G4 uncertainties using inf-cov");
 
   LogInfo << "Usage: " << std::endl;
   LogInfo << clParser.getConfigSummary() << std::endl << std::endl;
@@ -146,6 +147,8 @@ int main(int argc, char** argv){
 
   LogInfo << "Override done." << std::endl;
 
+  //std::cout << cHandler.getConfig().dump() << std::endl;
+
   LogInfo << "Fetching propagator config into fitter config..." << std::endl;
 
   // it will handle all the deprecated config options and names properly
@@ -230,6 +233,8 @@ int main(int argc, char** argv){
   }
 
 
+  bool TurnG4Off = clParser.isOptionTriggered("TurnG4Off");
+  LogAlert << "--TurnG4Off is set, so we will fix G4 dials to 1.0 and fix it" << std::endl;
   if( not clParser.isOptionTriggered("usePreFit") and fitterRootFile != nullptr ){
 
     // Load post-fit parameters as "prior" so we can reset the weight to this point when throwing toys
@@ -238,9 +243,15 @@ int main(int argc, char** argv){
       propagator.getParametersManager().injectParameterValues( GenericToolbox::Json::readConfigJsonStr( parState_->GetTitle() ) );
       for( auto& parSet : propagator.getParametersManager().getParameterSetsList() ){
         if( not parSet.isEnabled() ){ continue; }
+        bool IsG4ParSet =  (parSet.getName().rfind("G4", 0) == 0);
         for( auto& par : parSet.getParameterList() ){
           if( not par.isEnabled() ){ continue; }
           par.setPriorValue( par.getParameterValue() );
+          if(IsG4ParSet && TurnG4Off){
+            LogAlert << par.getFullTitle() << ": is fixed to 1.0" << std::endl;
+            par.setPriorValue( 1.0 );
+            par.setIsFixed(true);
+          }
         }
       }
     });
