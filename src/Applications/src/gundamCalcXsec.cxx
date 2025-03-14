@@ -111,21 +111,21 @@ int main(int argc, char** argv){
   LogInfo << "Removing defined samples..." << std::endl;
   ConfigUtils::applyOverrides(
       cHandler.getConfig(),
-      GenericToolbox::Json::readConfigJsonStr(R"({"fitterEngineConfig":{"propagatorConfig":{"fitSampleSetConfig":{"fitSampleList":[]}}}})")
+      GenericToolbox::Json::readConfigJsonStr(R"({"fitterEngineConfig":{"likelihoodInterfaceConfig":{"dataSetManagerConfig":{"dataSetList":[]}}}})")
+
   );
 
   // Disabling defined plots:
   LogInfo << "Removing defined plots..." << std::endl;
   ConfigUtils::applyOverrides(
       cHandler.getConfig(),
-      GenericToolbox::Json::readConfigJsonStr(R"({"fitterEngineConfig":{"propagatorConfig":{"plotGeneratorConfig":{}}}})")
+      GenericToolbox::Json::readConfigJsonStr(R"({"fitterEngineConfig":{"likelihoodInterfaceConfig":{"dataSetManagerConfig":{"propagatorConfig":{"plotGeneratorConfig":{}}}}}})")
   );
 
   // Defining signal samples
   JsonType xsecConfig{ ConfigUtils::readConfigFile( clParser.getOptionVal<std::string>("configFile") ) };
   cHandler.override( xsecConfig );
   LogInfo << "Override done." << std::endl;
-
 
   LogInfo << "Fetching propagator config into fitter config..." << std::endl;
 
