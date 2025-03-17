@@ -191,6 +191,8 @@ public:
   // print
   void printConfiguration() const;
 
+  double& getParameterValueRef() { return _parameterValue_; }
+
 private:
   // Parameters
   bool _isEnabled_{true};

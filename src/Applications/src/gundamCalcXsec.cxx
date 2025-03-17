@@ -46,6 +46,7 @@ int main(int argc, char** argv){
   clParser.addTriggerOption("usePreFit", {"--use-prefit"}, "Use prefit covariance matrices for the toy throws.");
   clParser.addTriggerOption("debugVerbose", {"--debug"}, "Add debug verbose.");
   clParser.addTriggerOption("TurnG4Off", {"--TurnG4Off"}, "Turn off G4 uncertainties using inf-cov");
+  clParser.addTriggerOption("SaveParThrows", {"--SaveParThrows"}, "Save parameter throws in a TTree");
 
   LogInfo << "Usage: " << std::endl;
   LogInfo << clParser.getConfigSummary() << std::endl << std::endl;
@@ -224,7 +225,6 @@ int main(int argc, char** argv){
 
   Propagator& propagator{fitter.getLikelihoodInterface().getModelPropagator()};
 
-
   if( clParser.isOptionTriggered("dryRun") ){
     std::cout << cHandler.toString() << std::endl;
 
@@ -232,9 +232,10 @@ int main(int argc, char** argv){
     return EXIT_SUCCESS;
   }
 
-
   bool TurnG4Off = clParser.isOptionTriggered("TurnG4Off");
-  LogAlert << "--TurnG4Off is set, so we will fix G4 dials to 1.0 and fix it" << std::endl;
+  if(TurnG4Off){
+    LogAlert << "--TurnG4Off is set, so we will fix G4 dials to 1.0 and fix it" << std::endl;
+  }
   if( not clParser.isOptionTriggered("usePreFit") and fitterRootFile != nullptr ){
 
     // Load post-fit parameters as "prior" so we can reset the weight to this point when throwing toys
@@ -270,6 +271,10 @@ int main(int argc, char** argv){
         }
     );
   }
+
+  if( clParser.isOptionTriggered("SaveParThrows") ){
+    propagator.getParametersManager().initParameterThrowTree();
+  } 
 
 
 
@@ -684,10 +689,16 @@ int main(int argc, char** argv){
     }
 */
     propagator.getParametersManager().throwParametersFromGlobalCovariance( not GundamGlobals::isDebug() );
+
     throwTimer.stop();
 
     propagateTimer.start();
     propagator.propagateParameters();
+
+    if( clParser.isOptionTriggered("SaveParThrows") ){
+      propagator.getParametersManager().fillParameterThrowTree();
+    }
+    //propagator.printBreakdowns();
 
     if( enableStatThrowInToys ){
       for( auto& xsec : crossSectionDataList ){
@@ -717,6 +728,8 @@ int main(int argc, char** argv){
 
   LogInfo << "Writing throws..." << std::endl;
   GenericToolbox::writeInTFile( GenericToolbox::mkdirTFile(calcXsecDir, "throws"), xsecThrowTree );
+
+  GenericToolbox::writeInTFile(GenericToolbox::mkdirTFile(calcXsecDir, "ParameterThrows"), propagator.getParametersManager().getParameterThrowTree() );
 
   LogInfo << "Calculating mean & covariance matrix..." << std::endl;
   auto* meanValuesVector = GenericToolbox::generateMeanVectorOfTree(

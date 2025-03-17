@@ -376,3 +376,97 @@ void ParametersManager::setParameterValidity(const std::string& v) {
     parSet.setValidity(v);
   }
 }
+
+void ParametersManager::initParameterThrowTree(){
+
+  if(_ParThrowTree){
+    LogInfo << "Parameter throw three is alread decalred" << std::endl;
+    return;
+  }
+
+  LogInfo << "Writing parameter throws in TTree..." << std::endl;
+
+  _ParThrowTree = new TTree("ParameterThrows", "ParameterThrows");
+  for( auto& parSet : getParameterSetsList() ){
+    if( not parSet.isEnabled() ) continue;
+    for( auto& par : parSet.getParameterList() ){
+      if( not par.isEnabled() ) continue;
+      _ParThrowTree->Branch(
+        GenericToolbox::generateCleanBranchName(par.getFullTitle()).c_str(),
+        &(par.getParameterValueRef())
+      );
+    }
+  }
+
+/*
+  for( auto& parSet : getParameterSetsList() ){
+    if( not parSet.isEnabled() ) continue;
+    for( auto& par : parSet.getParameterList() ){
+      if( not par.isEnabled() ) continue;
+
+        thrownParameterValues.emplace_back();
+        thrownParameterValues.back().writeRawData( par.getParameterValue() );
+
+        _ParThrowTree->Branch(
+          GenericToolbox::generateCleanBranchName(par.getFullTitle()).c_str(),
+          &thrownParameterValues.back().getRawDataArray()[0],
+          GenericToolbox::generateCleanBranchName(par.getFullTitle()+"/D").c_str()  
+        );
+
+    }
+  }
+*/
+/*
+  for( auto& parSet : getParameterSetsList() ){
+    if( not parSet.isEnabled() ) continue;
+
+    thrownParameterValues.emplace_back();
+
+    for( auto& par : parSet.getParameterList() ){
+      if( not par.isEnabled() ) continue;
+      leavesList.emplace_back(GenericToolbox::generateCleanBranchName(par.getFullTitle()) + "/D");
+      thrownParameterValues.back().writeRawData(par.getParameterValue());
+    }
+
+    thrownParameterValues.back().lockArraySize();
+    _ParThrowTree->Branch(
+        GenericToolbox::generateCleanBranchName(parSet.getName()).c_str(),
+        &thrownParameterValues.back().getRawDataArray()[0],
+        GenericToolbox::joinVectorString(leavesList, ":").c_str()
+    );
+  }
+*/
+/*
+  for( auto& parSet : getParameterSetsList() ){
+    if( not parSet.isEnabled() ) continue;
+    for( auto& par : parSet.getParameterList() ){
+      if( not par.isEnabled() ) continue;
+
+      _ParThrowTree->Branch(
+        GenericToolbox::generateCleanBranchName(par.getFullTitle()).c_str(),
+        &(par.getParameterValue()),
+        GenericToolbox::generateCleanBranchName(par.getFullTitle()+"/D").c_str()
+      );
+
+    }
+
+  }
+*/
+
+}
+
+void ParametersManager::fillParameterThrowTree(){
+/*
+  for( auto& parSet : getParameterSetsList() ){
+    if( not parSet.isEnabled() ) continue;
+
+    for( auto& par : parSet.getParameterList() ){
+      if( not par.isEnabled() ) continue;
+      std::cout << par.getFullTitle() << "\t" << par.getParameterValue() << std::endl;
+    }
+
+  }
+*/
+
+  _ParThrowTree->Fill();
+}

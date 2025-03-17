@@ -207,6 +207,21 @@ void ParameterSet::processCovarianceMatrix(){
 
     TVectorD eigenValues;
     // https://root-forum.cern.ch/t/tmatrixt-get-eigenvalues/25924
+
+/*
+    // DEBUG) jskim
+    // When _inverseStrippedCovarianceMatrix_ is 1x1, EigenVectors fails..
+    // but I found it runs when I use TMatrixTSym instead of TMatrixD
+    // This is just for testing
+    int tmp_nbins = _inverseStrippedCovarianceMatrix_->GetNrows();
+    TMatrixTSym<double> _inverseStrippedCovarianceMatrix_sim_(tmp_nbins);
+    for( int iPar = 0 ; iPar < tmp_nbins ; iPar++ ){
+      for( int jPar = 0 ; jPar < tmp_nbins ; jPar++ ){
+        _inverseStrippedCovarianceMatrix_sim_[iPar][jPar] = (*_inverseStrippedCovarianceMatrix_)[iPar][jPar];
+      }
+    }
+    _inverseStrippedCovarianceMatrix_sim_.EigenVectors(eigenValues);
+*/
     _inverseStrippedCovarianceMatrix_->EigenVectors(eigenValues);
     if( eigenValues.Min() < 0 ){
       LogError << "Negative eigen values for prior cov matrix: " << eigenValues.Min() << std::endl;

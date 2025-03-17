@@ -77,10 +77,17 @@ public:
   // print
   void printConfiguration() const;
 
+  // Paremeter throw trees
+  void initParameterThrowTree();
+  TTree* getParameterThrowTree(){ return _ParThrowTree; }
+  void fillParameterThrowTree();
+
 private:
   // config
   bool _reThrowParSetIfOutOfPhysical_{true};
   bool _throwToyParametersWithGlobalCov_{false};
+  TTree *_ParThrowTree{nullptr};
+  std::vector<GenericToolbox::RawDataArray> thrownParameterValues{};
   JsonType _parameterSetListConfig_{};
 
   // internals
