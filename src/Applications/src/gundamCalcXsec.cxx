@@ -45,7 +45,7 @@ int main(int argc, char** argv){
   clParser.addTriggerOption("useBfAsXsec", {"--use-bf-as-xsec"}, "Use best-fit as x-sec value instead of mean of toys.");
   clParser.addTriggerOption("usePreFit", {"--use-prefit"}, "Use prefit covariance matrices for the toy throws.");
   clParser.addTriggerOption("debugVerbose", {"--debug"}, "Add debug verbose.");
-  clParser.addTriggerOption("TurnG4Off", {"--TurnG4Off"}, "Turn off G4 uncertainties using inf-cov");
+  clParser.addTriggerOption("TurnRecoOnlyOff", {"--TurnRecoOnlyOff"}, "Turn off reco-only uncertainties using inf-cov");
   clParser.addTriggerOption("SaveParThrows", {"--SaveParThrows"}, "Save parameter throws in a TTree");
 
   LogInfo << "Usage: " << std::endl;
@@ -232,9 +232,9 @@ int main(int argc, char** argv){
     return EXIT_SUCCESS;
   }
 
-  bool TurnG4Off = clParser.isOptionTriggered("TurnG4Off");
-  if(TurnG4Off){
-    LogAlert << "--TurnG4Off is set, so we will fix G4 dials to 1.0 and fix it" << std::endl;
+  bool TurnRecoOnlyOff = clParser.isOptionTriggered("TurnRecoOnlyOff");
+  if(TurnRecoOnlyOff){
+    LogAlert << "--TurnRecoOnlyOff is set, so we will fix reco-only dials to 1.0 and fix it" << std::endl;
   }
   if( not clParser.isOptionTriggered("usePreFit") and fitterRootFile != nullptr ){
 
@@ -245,10 +245,14 @@ int main(int argc, char** argv){
       for( auto& parSet : propagator.getParametersManager().getParameterSetsList() ){
         if( not parSet.isEnabled() ){ continue; }
         bool IsG4ParSet =  (parSet.getName().rfind("G4", 0) == 0);
+        bool IsTrackSplitSet = (parSet.getName().rfind("TrackSplit", 0) == 0);
+
+        bool IsRecoOnlySet = IsG4ParSet || IsTrackSplitSet;
+
         for( auto& par : parSet.getParameterList() ){
           if( not par.isEnabled() ){ continue; }
           par.setPriorValue( par.getParameterValue() );
-          if(IsG4ParSet && TurnG4Off){
+          if(IsRecoOnlySet && TurnRecoOnlyOff){
             LogAlert << par.getFullTitle() << ": is fixed to 1.0" << std::endl;
             par.setPriorValue( 1.0 );
             par.setIsFixed(true);
@@ -561,7 +565,8 @@ int main(int argc, char** argv){
   enableStatThrowInToys = GenericToolbox::Json::fetchValue( xsecCalcConfig, "enableStatThrowInToys", enableStatThrowInToys);
   enableEventMcThrow    = GenericToolbox::Json::fetchValue( xsecCalcConfig, "enableEventMcThrow", enableEventMcThrow);
 
-  auto writeBinDataFct = std::function<void()>([&]{
+  //auto writeBinDataFct = std::function<void()>([&]{
+  auto writeBinDataFct = [&](bool SmearNormPar=true) {
     for( auto& xsec : crossSectionDataList ){
 
       xsec.branchBinsData.resetCurrentByteOffset();
@@ -572,7 +577,9 @@ int main(int argc, char** argv){
         for( auto& normData : xsec.normList ){
           if( not std::isnan( normData.normParameter.min ) ){
             double norm{normData.normParameter.min};
-            if( normData.normParameter.max != 0 ){ norm += normData.normParameter.max * gRandom->Gaus(); }
+            if( normData.normParameter.max != 0 ){
+              norm += SmearNormPar ? normData.normParameter.max * gRandom->Gaus() : 0.;
+            }
             binData /= norm;
           }
           else if( not normData.parSetNormaliserName.empty() ){
@@ -626,13 +633,14 @@ int main(int argc, char** argv){
         xsec.branchBinsData.writeRawData( binData );
       }
     }
-  });
+  //});
+  };
 
   {
     LogWarning << "Calculating weight at best-fit" << std::endl;
     for( auto& parSet : propagator.getParametersManager().getParameterSetsList() ){ parSet.moveParametersToPrior(); }
     propagator.propagateParameters();
-    writeBinDataFct();
+    writeBinDataFct(false);
     xsecAtBestFitTree->Fill();
     GenericToolbox::writeInTFile( GenericToolbox::mkdirTFile(calcXsecDir, "throws"), xsecAtBestFitTree );
   }
