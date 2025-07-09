@@ -25,9 +25,9 @@ namespace JointProbability{
     TMatrixTSym<double> Cov_Data_Nominal;
     TMatrixTSym<double> Cov_MC_Nominal;
 
-    void fillEventPtrs(const std::vector<SamplePair>& vec_samplepairs){
 
-      // Binning
+    void fillBinningInfos(const std::vector<SamplePair>& vec_samplepairs){
+
       int NBinsForEachSamplePair[vec_samplepairs.size()];
       for(unsigned int i_samplepair=0; i_samplepair<vec_samplepairs.size(); i_samplepair++){
         NBinsForEachSamplePair[i_samplepair] = vec_samplepairs[i_samplepair].data->getHistogram().getBinContentList().size();
@@ -41,6 +41,14 @@ namespace JointProbability{
         }
       }
 
+    }
+
+    void fillEventPtrs(const std::vector<SamplePair>& vec_samplepairs){
+
+      // Fill binning infos
+      this->fillBinningInfos(vec_samplepairs);
+
+      // Now that we know thw bin sizes, resize the Data/MC event pointers vectors
       for (int i = 0; i < _nTotalBins; ++i) {
         _arr_DataPtrs.resize(_nTotalBins);
         _arr_DataPtrs[i].resize(_nTotalBins);
