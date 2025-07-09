@@ -208,7 +208,7 @@ void ParameterSet::processCovarianceMatrix(){
     TVectorD eigenValues;
     // https://root-forum.cern.ch/t/tmatrixt-get-eigenvalues/25924
 
-/*
+
     // DEBUG) jskim
     // When _inverseStrippedCovarianceMatrix_ is 1x1, EigenVectors fails..
     // but I found it runs when I use TMatrixTSym instead of TMatrixD
@@ -221,8 +221,12 @@ void ParameterSet::processCovarianceMatrix(){
       }
     }
     _inverseStrippedCovarianceMatrix_sim_.EigenVectors(eigenValues);
-*/
+
+/*
+    // DEFAULT GUNDAM use but breaks when 1x1..
     _inverseStrippedCovarianceMatrix_->EigenVectors(eigenValues);
+*/
+
     if( eigenValues.Min() < 0 ){
       LogError << "Negative eigen values for prior cov matrix: " << eigenValues.Min() << std::endl;
       failed = true;
