@@ -89,7 +89,7 @@ void LikelihoodInterface::configureImpl(){
   GenericToolbox::Json::fillValue(_config_, _enableStatThrowInToys_, "enableStatThrowInToys");
   GenericToolbox::Json::fillValue(_config_, _gaussStatThrowInToys_, "gaussStatThrowInToys");
   GenericToolbox::Json::fillValue(_config_, _enableEventMcThrow_, "enableEventMcThrow");
-
+  GenericToolbox::Json::fillValue(_config_, _IsSimFitToy_, "IsSimFitToy");
 
   // TODO: move it outside
   _modelPropagator_.printConfiguration();
@@ -366,6 +366,12 @@ void LikelihoodInterface::loadModelPropagator(){
 
 }
 void LikelihoodInterface::loadDataPropagator(){
+
+  if( _IsSimFitToy_ ){
+    loadDataPropagator_SimFitToy();
+    return;
+  }
+
   LogInfo << "Loading data..." << std::endl;
 
   _dataPropagator_.clearContent();
@@ -477,6 +483,47 @@ void LikelihoodInterface::loadDataPropagator(){
   _dataPropagator_.printBreakdowns();
 
 }
+
+void LikelihoodInterface::loadDataPropagator_SimFitToy(){
+
+  LogInfo << "Loading data for SimFitToy..." << std::endl;
+
+  _dataPropagator_.clearContent();
+
+  _modelPropagator_.getParametersManager().moveParametersToPrior();
+  throwToyParameters(_modelPropagator_);
+  throwStatErrors_SimFitToy(_modelPropagator_);
+
+  // copy the events directly from the model
+  LogInfo << "Copying events from the model..." << std::endl;
+  _dataPropagator_.copyEventsFrom( _modelPropagator_ );
+  _dataPropagator_.shrinkDialContainers();
+  _dataPropagator_.buildDialCache();
+
+  // RESET MODEL
+  _modelPropagator_.getParametersManager().moveParametersToPrior();
+  _modelPropagator_.reweightEvents();
+
+  LogInfo << "Filling up data sample bin caches..." << std::endl;
+  _threadPool_.runJob([this](int iThread){
+    LogInfoIf(iThread <= 0) << "Updating sample per bin event lists..." << std::endl;
+    for( auto& sample : _dataPropagator_.getSampleSet().getSampleList() ){
+      sample.indexEventInHistogramBin(iThread);
+    }
+  });
+
+  LogInfo << "Filling up data sample histograms..." << std::endl;
+  _threadPool_.runJob([this](int iThread){
+    for( auto& sample : _dataPropagator_.getSampleSet().getSampleList() ){
+      sample.getHistogram().refillHistogram(iThread);
+    }
+  });
+
+  _dataPropagator_.printBreakdowns();
+
+
+}
+
 void LikelihoodInterface::buildSamplePairList(){
 
   auto nModelSamples{_modelPropagator_.getSampleSet().getSampleList().size()};
@@ -602,10 +649,102 @@ void LikelihoodInterface::throwStatErrors(Propagator& propagator_){
   if( _gaussStatThrowInToys_ ) {
     LogWarning << "Using gaussian statistical throws. (caveat: distribution truncated when the bins are close to zero)" << std::endl;
   }
+
   for( auto& sample : propagator_.getSampleSet().getSampleList() ){
     // Asimov bin content -> toy data
     sample.getHistogram().throwStatError( _gaussStatThrowInToys_ );
   }
+}
+void LikelihoodInterface::throwStatErrors_SimFitToy(Propagator& propagator_){
+  LogInfo << "Throwing statistical error for SimFitToy..." << std::endl;
+
+  std::vector<Sample>& vec_samples = propagator_.getSampleSet().getSampleList();
+
+  int _nTotalBins{0};
+  std::vector<int> _sampleIndicesForEachBin;
+  std::vector<int> _localBinIndicesForEachBin;
+
+  int NBinsForEachSample[vec_samples.size()];
+  for(unsigned int i_sample=0; i_sample<vec_samples.size(); i_sample++){
+    NBinsForEachSample[i_sample] = vec_samples[i_sample].getHistogram().getBinContentList().size();
+    _nTotalBins += NBinsForEachSample[i_sample];
+  }
+  for(unsigned int i_sample=0; i_sample<vec_samples.size(); i_sample++){
+    for(int i = 0; i < NBinsForEachSample[i_sample]; ++i) {
+      _sampleIndicesForEachBin.push_back( i_sample );
+      _localBinIndicesForEachBin.push_back( i );
+    }
+  }
+
+  for(unsigned int idx_global_i=0; idx_global_i<_nTotalBins; idx_global_i++){
+
+    int idx_sample_i = _sampleIndicesForEachBin[idx_global_i];
+    const auto& sample_i = vec_samples[idx_sample_i];
+    int idx_local_i = _localBinIndicesForEachBin[idx_global_i];
+
+    std::vector<Event*> vec_EvtList_i = sample_i.getHistogram().getBinContextList()[idx_local_i].eventPtrList;
+
+    for(unsigned int idx_global_j=idx_global_i; idx_global_j<_nTotalBins; idx_global_j++){
+
+      const auto& sample_j = vec_samples[ _sampleIndicesForEachBin[idx_global_j] ];
+      int idx_local_j = _localBinIndicesForEachBin[idx_global_j];
+
+      std::vector<Event*> vec_EvtList_j = sample_j.getHistogram().getBinContextList()[idx_local_j].eventPtrList;
+
+      for(Event* EvtList_i: vec_EvtList_i){
+        EventUtils::Indices& EvtIndices_i = EvtList_i->getIndices();
+        for(Event* EvtList_j: vec_EvtList_j){
+          EventUtils::Indices& EvtIndices_j = EvtList_j->getIndices();
+          if(EvtIndices_i.entry==EvtIndices_j.entry){
+
+            bool Is_i_Thrown = EvtList_i->StatThrown;
+            bool Is_j_Thrown = EvtList_j->StatThrown;
+
+            if(!Is_i_Thrown && !Is_j_Thrown){
+
+              double this_Poisson_Weight = double(gRandom->Poisson(1)) * EvtList_i->getEventWeight();
+
+              EvtList_i->getWeights().current = this_Poisson_Weight;
+              EvtList_i->StatThrown = true;
+
+              EvtList_j->getWeights().current = this_Poisson_Weight;
+              EvtList_j->StatThrown = true;
+
+            }
+
+          }
+        }
+      }
+
+    }
+
+  }
+
+  for(unsigned int i_sample=0; i_sample<vec_samples.size(); i_sample++){
+
+    Histogram& h = vec_samples[i_sample].getHistogram();
+    std::vector<Histogram::BinContent>& vec_binContent = h.getBinContentList();
+
+
+    for(unsigned int i_bin=0; i_bin<vec_binContent.size(); i_bin++){
+
+      Histogram::BinContent& binContent = vec_binContent[i_bin];
+
+      binContent.sumWeights = 0;
+      binContent.sqrtSumSqWeights = 0;
+
+      for (auto *eventPtr: h.getBinContextList()[i_bin].eventPtrList) {
+        double weight{eventPtr->getEventWeight()};
+        binContent.sumWeights += weight;
+        binContent.sqrtSumSqWeights += weight * weight;
+      }
+
+      binContent.sqrtSumSqWeights = sqrt(binContent.sqrtSumSqWeights);
+    }
+
+  }
+
+
 }
 
 // An MIT Style License

@@ -39,6 +39,8 @@ public:
   [[nodiscard]] std::string getSummary() const;
   friend std::ostream& operator <<( std::ostream& o, const Event& this_ ){ o << this_.getSummary(); return o; }
 
+  bool StatThrown{false};
+
 private:
   // internals
   EventUtils::Indices _indices_{};

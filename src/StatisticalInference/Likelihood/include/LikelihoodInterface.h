@@ -110,11 +110,13 @@ protected:
   void load();
   void loadModelPropagator();
   void loadDataPropagator();
+  void loadDataPropagator_SimFitToy();
   void buildSamplePairList();
 
   DataDispenser* getDataDispenser( DatasetDefinition& dataset_ );
   void throwToyParameters(Propagator& propagator_);
   void throwStatErrors(Propagator& propagator_);
+  void throwStatErrors_SimFitToy(Propagator& propagator_);
 
 
 private:
@@ -124,6 +126,7 @@ private:
   bool _enableStatThrowInToys_{true};
   bool _gaussStatThrowInToys_{false};
   bool _enableEventMcThrow_{true};
+  bool _IsSimFitToy_{false};
   DataType _dataType_{DataType::Asimov};
   JsonType _toyParameterInjector_{};
 
