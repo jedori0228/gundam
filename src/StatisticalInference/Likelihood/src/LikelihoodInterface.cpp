@@ -779,7 +779,7 @@ void LikelihoodInterface::throwStatErrors_SimFitToy(Propagator& propagator_){
       double BinContent_AfterThrow = double( gRandom->Poisson( BinContent_BeforeThrow ) );
 
       double ThisStatThrowSF = BinContent_AfterThrow/BinContent_BeforeThrow;
-      //printf("[JSKIMDEBUG] (i, j) = (%d, %d), Before: %f, After: %f -> SF = %f\n", idx_global_i, idx_global_j, BinContent_BeforeThrow, BinContent_AfterThrow, ThisSF);
+      //printf("[JSKIMDEBUG] (i, j) = (%d, %d), Before: %f, After: %f -> SF = %f\n", idx_global_i, idx_global_j, BinContent_BeforeThrow, BinContent_AfterThrow, ThisStatThrowSF);
 
       // Update data event list weight
       for(Event* EvtList_i: vec_EvtList_i){
@@ -788,8 +788,14 @@ void LikelihoodInterface::throwStatErrors_SimFitToy(Propagator& propagator_){
           EventUtils::Indices& EvtIndices_j = EvtList_j->getIndices();
           if(EvtIndices_i.entry==EvtIndices_j.entry){
 
-            EvtList_i->getWeights().current *= ThisStatThrowSF;
-            EvtList_j->getWeights().current *= ThisStatThrowSF;
+            if( !(EvtList_i->StatThrown) ){
+              EvtList_i->getWeights().current *= ThisStatThrowSF;
+              EvtList_i->StatThrown = true;
+            }
+            if( !(EvtList_j->StatThrown) ){
+              EvtList_j->getWeights().current *= ThisStatThrowSF;
+              EvtList_j->StatThrown = true;
+            }
 
           } // Found common event between two bins
         } // END Loop over events j
