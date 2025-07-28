@@ -139,9 +139,9 @@ namespace JointProbability{
         }
       } // done constructin covariance
 
+/*
       std::cout << "@ MC DataCov:" << std::endl;
       Cov_Data_Nominal.Print();
-/*
       std::cout << "@ Data: " << Cov_Data_Nominal(0,0) << std::endl;
       std::cout << "@ MC: " << Cov_MC_Nominal(0,0) << std::endl;
       std::cout << "@ FakeData: " << Cov_FakeData_Nominal(0,0) << std::endl;
