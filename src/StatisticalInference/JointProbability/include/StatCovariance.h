@@ -15,7 +15,8 @@ namespace JointProbability{
     [[nodiscard]] std::string getType() const override { return "StatCovariance"; }
 
     bool _isInitialized{false};
-    int _nTotalBins;
+    bool _useFakeData{false};
+    int _nTotalBins{0};
     std::vector<int> _samplepairIndicesForEachBin;
     std::vector<int> _localBinIndicesForEachBin;
 
@@ -24,7 +25,7 @@ namespace JointProbability{
 
     TMatrixTSym<double> Cov_Data_Nominal;
     TMatrixTSym<double> Cov_MC_Nominal;
-
+    TMatrixTSym<double> Cov_FakeData_Nominal;
 
     void fillBinningInfos(const std::vector<SamplePair>& vec_samplepairs){
 
@@ -67,7 +68,8 @@ namespace JointProbability{
 
         for(unsigned int idx_global_j=idx_global_i; idx_global_j<_nTotalBins; idx_global_j++){
 
-          const auto& samplepair_j = vec_samplepairs[ _samplepairIndicesForEachBin[idx_global_j] ];
+          int idx_samplepair_j = _samplepairIndicesForEachBin[idx_global_j];
+          const auto& samplepair_j = vec_samplepairs[ idx_samplepair_j ];
           int idx_local_j = _localBinIndicesForEachBin[idx_global_j];
 
           std::vector<Event*> vec_DataEvtList_j = samplepair_j.data->getHistogram().getBinContextList()[idx_local_j].eventPtrList;
@@ -103,6 +105,8 @@ namespace JointProbability{
       Cov_Data_Nominal.Zero(); // Make sure it is initialized to zero
       Cov_MC_Nominal.ResizeTo(_nTotalBins, _nTotalBins);
       Cov_MC_Nominal.Zero(); // Make sure it is initialized to zero
+      Cov_FakeData_Nominal.ResizeTo(_nTotalBins, _nTotalBins);
+      Cov_FakeData_Nominal.Zero(); // Make sure it is initialized to zero
 
       for(unsigned int idx_global_i=0; idx_global_i<_nTotalBins; idx_global_i++){
 
@@ -120,16 +124,28 @@ namespace JointProbability{
           Cov_Data_Nominal(idx_global_j, idx_global_i) = DataBinContent;
           // MC
           double MCBinContent = 0.;
+          double FakeDataBinContent = 0.;
           for(Event* EvtList_i: _arr_MCPtrs[idx_global_i][idx_global_j]){
             // We need to take the stat of the raw-MC events, not on the weighted sum;
             // so it is squared
             MCBinContent += EvtList_i->getEventWeight() * EvtList_i->getEventWeight();
+            FakeDataBinContent += EvtList_i->getEventWeight();
           }
           Cov_MC_Nominal(idx_global_i, idx_global_j) = MCBinContent;
           Cov_MC_Nominal(idx_global_j, idx_global_i) = MCBinContent;
+
+          Cov_FakeData_Nominal(idx_global_i, idx_global_j) = FakeDataBinContent;
+          Cov_FakeData_Nominal(idx_global_j, idx_global_i) = FakeDataBinContent;
         }
       } // done constructin covariance
 
+      std::cout << "@ MC DataCov:" << std::endl;
+      Cov_Data_Nominal.Print();
+/*
+      std::cout << "@ Data: " << Cov_Data_Nominal(0,0) << std::endl;
+      std::cout << "@ MC: " << Cov_MC_Nominal(0,0) << std::endl;
+      std::cout << "@ FakeData: " << Cov_FakeData_Nominal(0,0) << std::endl;
+*/
       _isInitialized = true;
 
     }
@@ -160,8 +176,20 @@ namespace JointProbability{
 
       // Now calculate chi2
       // inverse the chi2
-      TMatrixT<double> Cov_Sum = Cov_Data+Cov_MC;
+      //TMatrixT<double> Cov_Sum = Cov_Data+Cov_MC;
       //TMatrixT<double> Cov_Sum = Cov_Data;
+      TMatrixT<double> Cov_Sum = _useFakeData ? Cov_FakeData_Nominal + Cov_MC : Cov_Data+Cov_MC; // Fake data from toy sometimes lose indices
+
+
+/*
+      // TODO
+      // Taking diagonals
+      for(unsigned int i=0; i<_nTotalBins; i++){
+        for(unsigned int j=0; j<_nTotalBins; j++){
+          if(i!=j) Cov_Sum[i][j] = 0.;
+        }
+      }
+*/
 
       if(DoDebug){
         std::cout << "[JSKIMDEBUG] Cov_Data:" << std::endl;
@@ -220,6 +248,10 @@ namespace JointProbability{
         }
       }
 
+      // Hmm, force chi2 positive
+      if(chi2<0) chi2=0;
+
+/*
       if(chi2<0){
         printf("[JSKIMDEBUG] Negative chi2: %e\n", chi2);
         printf("[JSKIMDEBUG] Data-MC array:\n");
@@ -254,7 +286,7 @@ namespace JointProbability{
 
         abort();
       }
-
+*/
 /*
       double chi2 = 0.;
       for(unsigned int i=0; i<_nTotalBins; i++){

@@ -170,6 +170,7 @@ double LikelihoodInterface::evalStatLikelihood() const {
     std::shared_ptr<JointProbability::StatCovariance> statCovPtr = std::dynamic_pointer_cast<JointProbability::StatCovariance>(_jointProbabilityPtr_);
     if(not statCovPtr->_isInitialized){
       statCovPtr->fillEventPtrs( _samplePairList_ );
+      if( _IsSimFitToy_ ) statCovPtr->_useFakeData = true;
     }
     _buffer_.statLikelihood += _jointProbabilityPtr_->eval( _samplePairList_ );
   }
@@ -676,6 +677,9 @@ void LikelihoodInterface::throwStatErrors_SimFitToy(Propagator& propagator_){
     }
   }
 
+  TMatrixTSym<double> StatCovValues;
+  StatCovValues.ResizeTo(_nTotalBins, _nTotalBins);
+  StatCovValues.Zero();
   for(unsigned int idx_global_i=0; idx_global_i<_nTotalBins; idx_global_i++){
 
     int idx_sample_i = _sampleIndicesForEachBin[idx_global_i];
@@ -686,11 +690,13 @@ void LikelihoodInterface::throwStatErrors_SimFitToy(Propagator& propagator_){
 
     for(unsigned int idx_global_j=idx_global_i; idx_global_j<_nTotalBins; idx_global_j++){
 
-      const auto& sample_j = vec_samples[ _sampleIndicesForEachBin[idx_global_j] ];
+      int idx_sample_j = _sampleIndicesForEachBin[idx_global_j];
+      const auto& sample_j = vec_samples[ idx_sample_j ];
       int idx_local_j = _localBinIndicesForEachBin[idx_global_j];
 
       std::vector<Event*> vec_EvtList_j = sample_j.getHistogram().getBinContextList()[idx_local_j].eventPtrList;
 
+      double this_BinContent = 0.;
       for(Event* EvtList_i: vec_EvtList_i){
         EventUtils::Indices& EvtIndices_i = EvtList_i->getIndices();
         for(Event* EvtList_j: vec_EvtList_j){
@@ -704,27 +710,98 @@ void LikelihoodInterface::throwStatErrors_SimFitToy(Propagator& propagator_){
 
               double this_Poisson_Weight = double(gRandom->Poisson(1)) * EvtList_i->getEventWeight();
 
-              EvtList_i->getWeights().current = this_Poisson_Weight;
-              EvtList_i->StatThrown = true;
+              if(_enableEventMcThrow_){
+                EvtList_i->getWeights().current = this_Poisson_Weight;
+                EvtList_i->StatThrown = true;
 
-              EvtList_j->getWeights().current = this_Poisson_Weight;
-              EvtList_j->StatThrown = true;
+                EvtList_j->getWeights().current = this_Poisson_Weight;
+                EvtList_j->StatThrown = true;
+              }
+            } 
 
-            }
+            this_BinContent += EvtList_i->getWeights().current;
 
-          }
-        }
-      }
+          } // Found common event between two bins
+        } // END Loop over events j
+      } // END Loop over events i
+
+      StatCovValues(idx_global_i, idx_global_j) = this_BinContent;
+      StatCovValues(idx_global_j, idx_global_i) = this_BinContent;
 
     }
 
   }
 
+/*
+  std::cout << "[JSKIMDEBUG] StatCovValues after MCStatThrow" << std::endl;
+  StatCovValues.Print();
+*/
+
+  // Now based on BinContent
+
+  // Reset flag
+  for(unsigned int idx_global_i=0; idx_global_i<_nTotalBins; idx_global_i++){
+    int idx_sample_i = _sampleIndicesForEachBin[idx_global_i];
+    const auto& sample_i = vec_samples[idx_sample_i];
+    int idx_local_i = _localBinIndicesForEachBin[idx_global_i];
+    std::vector<Event*> vec_EvtList_i = sample_i.getHistogram().getBinContextList()[idx_local_i].eventPtrList;
+    for(Event* EvtList_i: vec_EvtList_i){
+      EvtList_i->StatThrown = false;
+    }
+  }
+
+  // Throw based on BinContent
+  // We do off-diagonal
+  for(unsigned int idx_global_i=0; idx_global_i<_nTotalBins; idx_global_i++){
+
+    int idx_sample_i = _sampleIndicesForEachBin[idx_global_i];
+    const auto& sample_i = vec_samples[idx_sample_i];
+    int idx_local_i = _localBinIndicesForEachBin[idx_global_i];
+
+    std::vector<Event*> vec_EvtList_i = sample_i.getHistogram().getBinContextList()[idx_local_i].eventPtrList;
+
+    for(unsigned int idx_global_j=0; idx_global_j<_nTotalBins; idx_global_j++){
+
+      if(idx_global_i==idx_global_j) continue;
+
+      int idx_sample_j = _sampleIndicesForEachBin[idx_global_j];
+      const auto& sample_j = vec_samples[ idx_sample_j ];
+      int idx_local_j = _localBinIndicesForEachBin[idx_global_j];
+
+      if(idx_sample_i==idx_sample_j) continue;
+
+      std::vector<Event*> vec_EvtList_j = sample_j.getHistogram().getBinContextList()[idx_local_j].eventPtrList;
+
+      // binContent
+
+      double BinContent_BeforeThrow = StatCovValues(idx_global_i, idx_global_j);
+      if(BinContent_BeforeThrow==0.) continue;
+      double BinContent_AfterThrow = double( gRandom->Poisson( BinContent_BeforeThrow ) );
+
+      double ThisStatThrowSF = BinContent_AfterThrow/BinContent_BeforeThrow;
+      //printf("[JSKIMDEBUG] (i, j) = (%d, %d), Before: %f, After: %f -> SF = %f\n", idx_global_i, idx_global_j, BinContent_BeforeThrow, BinContent_AfterThrow, ThisSF);
+
+      // Update data event list weight
+      for(Event* EvtList_i: vec_EvtList_i){
+        EventUtils::Indices& EvtIndices_i = EvtList_i->getIndices();
+        for(Event* EvtList_j: vec_EvtList_j){
+          EventUtils::Indices& EvtIndices_j = EvtList_j->getIndices();
+          if(EvtIndices_i.entry==EvtIndices_j.entry){
+
+            EvtList_i->getWeights().current *= ThisStatThrowSF;
+            EvtList_j->getWeights().current *= ThisStatThrowSF;
+
+          } // Found common event between two bins
+        } // END Loop over events j
+      } // END Loop over events i
+
+    }
+  }
+    
   for(unsigned int i_sample=0; i_sample<vec_samples.size(); i_sample++){
 
     Histogram& h = vec_samples[i_sample].getHistogram();
     std::vector<Histogram::BinContent>& vec_binContent = h.getBinContentList();
-
 
     for(unsigned int i_bin=0; i_bin<vec_binContent.size(); i_bin++){
 
@@ -743,7 +820,6 @@ void LikelihoodInterface::throwStatErrors_SimFitToy(Propagator& propagator_){
     }
 
   }
-
 
 }
 
