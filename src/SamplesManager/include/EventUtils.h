@@ -30,6 +30,7 @@ namespace EventUtils{
   struct Weights{
     double base{1};
     double current{1};
+    double dummy{1};
 
     void resetCurrentWeight(){ current = base; }
     [[nodiscard]] std::string getSummary() const;

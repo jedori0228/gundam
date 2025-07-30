@@ -551,12 +551,8 @@ int main(int argc, char** argv){
   for( auto& xsec : crossSectionDataList ){
     {
       auto& mcEvList{xsec.samplePtr->getEventList()};
-      std::for_each(mcEvList.begin(), mcEvList.end(), []( Event& ev_){ ev_.getWeights().current = 0; });
+      std::for_each(mcEvList.begin(), mcEvList.end(), []( Event& ev_){ ev_.getWeights().dummy = 0; });
     }
-//    {
-//      auto& dataEvList{xsec.samplePtr->getDataContainer().getEventList()};
-//      std::for_each(dataEvList.begin(), dataEvList.end(), []( Event& ev_){ ev_.getWeights().current = 0; });
-//    }
   }
 
   bool enableEventMcThrow{true};
@@ -601,18 +597,9 @@ int main(int argc, char** argv){
           auto& mcEvList{xsec.samplePtr->getEventList()};
           std::for_each(mcEvList.begin(), mcEvList.end(), [&]( Event& ev_){
             if( iBin != ev_.getIndices().bin ){ return; }
-            ev_.getWeights().current += binData;
+            ev_.getWeights().dummy += binData;
           });
         }
-
-        // set event weight
-//        {
-//          auto& dataEvList{xsec.samplePtr->getDataContainer().getEventList()};
-//          std::for_each(dataEvList.begin(), dataEvList.end(), [&]( Event& ev_){
-//            if( iBin != ev_.getIndices().bin ){ return; }
-//            ev_.getWeights().current = binData;
-//          });
-//        }
 
         // bin volume
         auto& bin = xsec.samplePtr->getHistogram().getBinContextList()[iBin].bin;
@@ -810,24 +797,11 @@ int main(int argc, char** argv){
       }
 
       std::for_each(mcEvList.begin(), mcEvList.end(), [&]( Event &ev_) {
+        ev_.getWeights().current = ev_.getWeights().dummy;
         ev_.getWeights().current /= nToys;
         ev_.getWeights().current /= double(nEventInBin[ev_.getIndices().bin]);
       });
     }
-//    {
-//      auto &dataEvList{xsec.samplePtr->getDataContainer().getEventList()};
-//      std::vector<size_t> nEventInBin(xsec.histogram.GetNbinsX(), 0);
-//      for( size_t iBin = 0 ; iBin < nEventInBin.size() ; iBin++ ){
-//        nEventInBin[iBin] = std::count_if(dataEvList.begin(), dataEvList.end(), [iBin]( Event &ev_) {
-//          return ev_.getIndices().bin== iBin;
-//        });
-//      }
-//
-//      std::for_each(dataEvList.begin(), dataEvList.end(), [&]( Event &ev_) {
-//        ev_.getWeights().current /= nToys;
-//        ev_.getWeights().current /= double(nEventInBin[ev_.getIndices().bin]);
-//      });
-//    }
   }
 
   LogInfo << "Generating xsec sample plots..." << std::endl;
