@@ -127,6 +127,7 @@ private:
   bool _gaussStatThrowInToys_{false};
   bool _enableEventMcThrow_{true};
   bool _IsSimFitToy_{false};
+  bool _SkipInitialLLHCalc_{false};
   DataType _dataType_{DataType::Asimov};
   JsonType _toyParameterInjector_{};
 

@@ -90,6 +90,7 @@ void LikelihoodInterface::configureImpl(){
   GenericToolbox::Json::fillValue(_config_, _gaussStatThrowInToys_, "gaussStatThrowInToys");
   GenericToolbox::Json::fillValue(_config_, _enableEventMcThrow_, "enableEventMcThrow");
   GenericToolbox::Json::fillValue(_config_, _IsSimFitToy_, "IsSimFitToy");
+  GenericToolbox::Json::fillValue(_config_, _SkipInitialLLHCalc_, "SkipInitialLLHCalc");
 
   // TODO: move it outside
   _modelPropagator_.printConfiguration();
@@ -132,9 +133,14 @@ void LikelihoodInterface::initializeImpl() {
 
   /// some joint fit probability might need to save the value of the nominal histogram.
   /// here we know every parameter is at its nominal value
-  LogInfo << "First evaluation of the LLH at the nominal value..." << std::endl;
-  this->propagateAndEvalLikelihood();
-  LogInfo << this->getSummary() << std::endl;
+  if(_SkipInitialLLHCalc_){
+    LogInfo << "Skipping evaluation of the LLH at the nominal value..." << std::endl;
+  }
+  else{
+    LogInfo << "First evaluation of the LLH at the nominal value..." << std::endl;
+    this->propagateAndEvalLikelihood();
+    LogInfo << this->getSummary() << std::endl;
+  }
 
   /// move the parameter away from the prior if needed
   if( not _modelPropagator_.getParameterInjectorMc().empty() ){
@@ -169,8 +175,8 @@ double LikelihoodInterface::evalStatLikelihood() const {
 
     std::shared_ptr<JointProbability::StatCovariance> statCovPtr = std::dynamic_pointer_cast<JointProbability::StatCovariance>(_jointProbabilityPtr_);
     if(not statCovPtr->_isInitialized){
-      statCovPtr->fillEventPtrs( _samplePairList_ );
       if( _IsSimFitToy_ ) statCovPtr->_useFakeData = true;
+      statCovPtr->fillEventPtrs( _samplePairList_ );
     }
     _buffer_.statLikelihood += _jointProbabilityPtr_->eval( _samplePairList_ );
   }
