@@ -45,6 +45,7 @@ int main(int argc, char** argv){
   clParser.addTriggerOption("useBf", {"--use-bf"}, "Use best-fit as x-sec value instead of mean of toys.");
   clParser.addTriggerOption("usePreFit", {"--use-prefit"}, "Use prefit covariance matrices for the toy throws.");
   clParser.addTriggerOption("debugVerbose", {"--debug"}, "Add debug verbose.");
+  clParser.addTriggerOption("saveData", {"--save-data"}, "Add debug verbose.");
 
   LogInfo << "Usage: " << std::endl;
   LogInfo << clParser.getConfigSummary() << std::endl << std::endl;
@@ -130,7 +131,7 @@ int main(int argc, char** argv){
   cHandler.override( toyConfig );
 
   if( clParser.isOptionTriggered("fitSampleSetConfig") ){
-    JsonType fitSampleSetConfig_new{ ConfigUtils::readConfigFile( clParser.getOptionVal<std::string>("fitSampleSetConfig") ) };
+    JsonType fitSampleSetConfig_new = ConfigUtils::readConfigFile( clParser.getOptionVal<std::string>("fitSampleSetConfig") );
     cHandler.getConfig()["fitterEngineConfig"]["likelihoodInterfaceConfig"]["propagatorConfig"]["fitSampleSetConfig"]["fitSampleList"] = fitSampleSetConfig_new["fitSampleList"];
   }
   if( clParser.isOptionTriggered("plotGeneratorConfig") ){
@@ -139,7 +140,7 @@ int main(int argc, char** argv){
       "histogramsDefinition",
       "canvasParameters",
     };
-    JsonType plotGeneratorConfig_new{ ConfigUtils::readConfigFile( clParser.getOptionVal<std::string>("plotGeneratorConfig") ) };
+    JsonType plotGeneratorConfig_new = ConfigUtils::readConfigFile( clParser.getOptionVal<std::string>("plotGeneratorConfig") );
     for(const auto& k: plotConfigKeysToCopy){
       cHandler.getConfig()["fitterEngineConfig"]["likelihoodInterfaceConfig"]["plotGeneratorConfig"][k] = plotGeneratorConfig_new[k];
     }
@@ -156,6 +157,9 @@ int main(int argc, char** argv){
   // We are only interested in our MC. Data has already been used to get the post-fit error/values
   // TODO Check
   //fitter.getLikelihoodInterface().setForceAsimovData( true );
+  if( clParser.isOptionTriggered("saveData") ){
+    fitter.getLikelihoodInterface().setDataType( LikelihoodInterface::DataType::RealData );
+  }
 
   // Disabling eigen decomposed parameters
   fitter.getLikelihoodInterface().getModelPropagator().setEnableEigenToOrigInPropagate( false );

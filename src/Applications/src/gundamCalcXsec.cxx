@@ -131,7 +131,7 @@ int main(int argc, char** argv){
   cHandler.override( xsecConfig );
 
   if( clParser.isOptionTriggered("fitSampleSetConfig") ){
-    JsonType fitSampleSetConfig_new{ ConfigUtils::readConfigFile( clParser.getOptionVal<std::string>("fitSampleSetConfig") ) };
+    JsonType fitSampleSetConfig_new = ConfigUtils::readConfigFile( clParser.getOptionVal<std::string>("fitSampleSetConfig") );
     cHandler.getConfig()["fitterEngineConfig"]["likelihoodInterfaceConfig"]["propagatorConfig"]["fitSampleSetConfig"]["fitSampleList"] = fitSampleSetConfig_new["fitSampleList"];
   }
   if( clParser.isOptionTriggered("plotGeneratorConfig") ){
@@ -140,7 +140,7 @@ int main(int argc, char** argv){
       "histogramsDefinition",
       "canvasParameters",
     };
-    JsonType plotGeneratorConfig_new{ ConfigUtils::readConfigFile( clParser.getOptionVal<std::string>("plotGeneratorConfig") ) };
+    JsonType plotGeneratorConfig_new = ConfigUtils::readConfigFile( clParser.getOptionVal<std::string>("plotGeneratorConfig") );
     for(const auto& k: plotConfigKeysToCopy){
       cHandler.getConfig()["fitterEngineConfig"]["likelihoodInterfaceConfig"]["plotGeneratorConfig"][k] = plotGeneratorConfig_new[k];
     }
