@@ -46,6 +46,7 @@ int main(int argc, char** argv){
   clParser.addTriggerOption("usePreFit", {"--use-prefit"}, "Use prefit covariance matrices for the toy throws.");
   clParser.addTriggerOption("debugVerbose", {"--debug"}, "Add debug verbose.");
   clParser.addTriggerOption("saveData", {"--save-data"}, "Add debug verbose.");
+  clParser.addTriggerOption("SaveParThrows", {"--SaveParThrows"}, "Save parameter throws in a TTree");
 
   LogInfo << "Usage: " << std::endl;
   LogInfo << clParser.getConfigSummary() << std::endl << std::endl;
@@ -267,7 +268,9 @@ int main(int argc, char** argv){
     );
   }
 
-
+  if( clParser.isOptionTriggered("SaveParThrows") ){
+    propagator.getParametersManager().initParameterThrowTree();
+  }
 
   // Creating output file
   std::string outFilePath{};
@@ -452,6 +455,10 @@ int main(int argc, char** argv){
     propagateTimer.start();
     propagator.propagateParameters();
 
+    if( clParser.isOptionTriggered("SaveParThrows") ){
+      propagator.getParametersManager().fillParameterThrowTree();
+    }
+
     if( enableStatThrowInToys ){
       for( auto& toyData : ToyDataList ){
         if( enableEventMcThrow ){
@@ -480,6 +487,10 @@ int main(int argc, char** argv){
 
   LogInfo << "Writing throws..." << std::endl;
   GenericToolbox::writeInTFile( GenericToolbox::mkdirTFile(toyGenDir, "throws"), toyThrowTree );
+
+  if( clParser.isOptionTriggered("SaveParThrows") ){
+    GenericToolbox::writeInTFile( GenericToolbox::mkdirTFile(toyGenDir, "ParameterThrows"), propagator.getParametersManager().getParameterThrowTree() );
+  }
 
   LogInfo << "Calculating mean & covariance matrix..." << std::endl;
   auto* meanValuesVector = GenericToolbox::generateMeanVectorOfTree(

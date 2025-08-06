@@ -380,7 +380,7 @@ void ParametersManager::setParameterValidity(const std::string& v) {
 void ParametersManager::initParameterThrowTree(){
 
   if(_ParThrowTree){
-    LogInfo << "Parameter throw three is alread decalred" << std::endl;
+    LogInfo << "Parameter throw tree is alread decalred" << std::endl;
     return;
   }
 

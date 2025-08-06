@@ -724,7 +724,9 @@ int main(int argc, char** argv){
   LogInfo << "Writing throws..." << std::endl;
   GenericToolbox::writeInTFile( GenericToolbox::mkdirTFile(calcXsecDir, "throws"), xsecThrowTree );
 
-  GenericToolbox::writeInTFile(GenericToolbox::mkdirTFile(calcXsecDir, "ParameterThrows"), propagator.getParametersManager().getParameterThrowTree() );
+  if( clParser.isOptionTriggered("SaveParThrows") ){
+    GenericToolbox::writeInTFile(GenericToolbox::mkdirTFile(calcXsecDir, "ParameterThrows"), propagator.getParametersManager().getParameterThrowTree() );
+  }
 
   LogInfo << "Calculating mean & covariance matrix..." << std::endl;
   auto* meanValuesVector = GenericToolbox::generateMeanVectorOfTree(
