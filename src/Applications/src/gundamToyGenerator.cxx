@@ -302,6 +302,7 @@ int main(int argc, char** argv){
     clParser.isOptionTriggered("useBf")
     or GenericToolbox::Json::fetchValue<bool>(toyConfig, "useBestFitAsCentralValue", false)
   };
+  bool usePreFit = clParser.isOptionTriggered("usePreFit");
 
   LogInfo << "Creating throws tree" << std::endl;
   auto* toyThrowTree = new TTree("toyThrow", "toyThrow");
@@ -494,7 +495,7 @@ int main(int argc, char** argv){
 
   LogInfo << "Calculating mean & covariance matrix..." << std::endl;
   auto* meanValuesVector = GenericToolbox::generateMeanVectorOfTree(
-      useBestFitAsCentralValue ? bestFitTree : toyThrowTree
+      useBestFitAsCentralValue || usePreFit ? bestFitTree : toyThrowTree
   );
   auto* globalCovMatrix = GenericToolbox::generateCovarianceMatrixOfTree( toyThrowTree );
 
