@@ -128,7 +128,7 @@ int main(int argc, char** argv){
   GenericToolbox::Json::clearEntry( cHandler.getConfig(), "fitterEngineConfig/propagatorConfig/plotGeneratorConfig" );
 
   // Defining signal samples
-  auto toyConfig{ ConfigUtils::readConfigFile( clParser.getOptionVal<std::string>("configFile") ) };
+  auto toyConfig( ConfigUtils::readConfigFile( clParser.getOptionVal<std::string>("configFile") ) );
   cHandler.override( toyConfig );
 
   if( clParser.isOptionTriggered("fitSampleSetConfig") ){
