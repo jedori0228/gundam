@@ -246,8 +246,9 @@ int main(int argc, char** argv){
         if( not parSet.isEnabled() ){ continue; }
         bool IsG4ParSet =  (parSet.getName().rfind("G4", 0) == 0);
         bool IsTrackSplitSet = (parSet.getName().rfind("TrackSplit", 0) == 0);
+        bool IsDetector = (parSet.getName().rfind("Detector", 0) == 0);
 
-        bool IsRecoOnlySet = IsG4ParSet || IsTrackSplitSet;
+        bool IsRecoOnlySet = IsG4ParSet || IsTrackSplitSet || IsDetector;
 
         for( auto& par : parSet.getParameterList() ){
           if( not par.isEnabled() ){ continue; }
