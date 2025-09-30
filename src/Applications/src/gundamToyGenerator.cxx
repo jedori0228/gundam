@@ -237,6 +237,20 @@ int main(int argc, char** argv){
     return EXIT_SUCCESS;
   }
 
+  if( clParser.isOptionTriggered("usePreFit") ){
+    LogWarning << "This is pre-fit, and we are forcing signal template parameters free" << std::endl;
+    for( auto& parSet : propagator.getParametersManager().getParameterSetsList() ){
+      bool IsTemplate = (parSet.getName().rfind("Template Parameter", 0) == 0);
+      for( auto& par : parSet.getParameterList() ){
+        if( not par.isEnabled() ){ continue; }
+        if(IsTemplate){
+          LogAlert << par.getFullTitle() << ": is fixed to 1.0" << std::endl;
+          par.setPriorValue( 1.0 );
+          par.setIsFixed(true);
+        }
+      }
+    }
+  }
 
   if( not clParser.isOptionTriggered("usePreFit") and fitterRootFile != nullptr ){
 

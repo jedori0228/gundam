@@ -159,6 +159,10 @@ void ParametersManager::throwParametersFromParSetCovariance(){
 
     LogContinueIf( not parSet.isEnabledThrowToyParameters(), "Toy throw is disabled for " << parSet.getName() );
 
+    // 25.09.29) J. KIM Hacked this to NOT throw signal template parameters
+    bool IsTemplate = (parSet.getName().rfind("Template Parameter", 0) == 0);
+    LogContinueIf( IsTemplate, "Toy throw is disabled for template parameters: " << parSet.getName() );
+
     if( parSet.getPriorCovarianceMatrix() != nullptr ){
 /*
       LogWarning << parSet.getName() << ": throwing correlated parameters..." << std::endl;
