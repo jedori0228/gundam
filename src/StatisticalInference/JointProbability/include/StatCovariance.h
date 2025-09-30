@@ -17,6 +17,7 @@ namespace JointProbability{
     bool _isInitialized{false};
     bool _useFakeData{false};
     int _nTotalBins{0};
+    bool _diagOnly{false};
     std::vector<int> _samplepairIndicesForEachBin;
     std::vector<int> _localBinIndicesForEachBin;
 
@@ -180,16 +181,13 @@ namespace JointProbability{
       //TMatrixT<double> Cov_Sum = Cov_Data;
       TMatrixT<double> Cov_Sum = _useFakeData ? Cov_FakeData_Nominal + Cov_MC : Cov_Data+Cov_MC; // Fake data from toy sometimes lose indices
 
-
-/*
-      // TODO
-      // Taking diagonals
-      for(unsigned int i=0; i<_nTotalBins; i++){
-        for(unsigned int j=0; j<_nTotalBins; j++){
-          if(i!=j) Cov_Sum[i][j] = 0.;
+      if(_diagOnly){
+        for(unsigned int i=0; i<_nTotalBins; i++){
+          for(unsigned int j=0; j<_nTotalBins; j++){
+            if(i!=j) Cov_Sum[i][j] = 0.;
+          }
         }
       }
-*/
 
       if(DoDebug){
         std::cout << "[JSKIMDEBUG] Cov_Data:" << std::endl;

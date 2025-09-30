@@ -248,6 +248,8 @@ void FitterEngine::initializeImpl(){
     getLikelihoodInterface().writeEventRates( GenericToolbox::TFilePath(_saveDir_, "preFit") );
   }
 
+  getLikelihoodInterface().writeStatCovarianceMatrix( _saveDir_ );
+
   LogWarning << "Saving all objects to disk..." << std::endl;
   GenericToolbox::triggerTFileWrite(_saveDir_);
 }

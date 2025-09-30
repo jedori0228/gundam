@@ -99,6 +99,8 @@ public:
   void writeEvents(const GenericToolbox::TFilePath& saveDir_) const;
   void writeEventRates(const GenericToolbox::TFilePath& saveDir_) const;
 
+  void writeStatCovarianceMatrix(TDirectory* saveDir_) const;
+
   // print
   void printBreakdowns() const;
   std::string getSampleBreakdownTable() const;
@@ -127,6 +129,7 @@ private:
   bool _gaussStatThrowInToys_{false};
   bool _enableEventMcThrow_{true};
   bool _IsSimFitToy_{false};
+  bool _StatCovDiagOnly_{false};
   bool _SkipInitialLLHCalc_{false};
   DataType _dataType_{DataType::Asimov};
   JsonType _toyParameterInjector_{};

@@ -90,6 +90,7 @@ void LikelihoodInterface::configureImpl(){
   GenericToolbox::Json::fillValue(_config_, _gaussStatThrowInToys_, "gaussStatThrowInToys");
   GenericToolbox::Json::fillValue(_config_, _enableEventMcThrow_, "enableEventMcThrow");
   GenericToolbox::Json::fillValue(_config_, _IsSimFitToy_, "IsSimFitToy");
+  GenericToolbox::Json::fillValue(_config_, _StatCovDiagOnly_, "StatCovDiagOnly");
   GenericToolbox::Json::fillValue(_config_, _SkipInitialLLHCalc_, "SkipInitialLLHCalc");
 
   // TODO: move it outside
@@ -176,6 +177,7 @@ double LikelihoodInterface::evalStatLikelihood() const {
     std::shared_ptr<JointProbability::StatCovariance> statCovPtr = std::dynamic_pointer_cast<JointProbability::StatCovariance>(_jointProbabilityPtr_);
     if(not statCovPtr->_isInitialized){
       if( _IsSimFitToy_ ) statCovPtr->_useFakeData = true;
+      if( _StatCovDiagOnly_ ) statCovPtr->_diagOnly = true;
       statCovPtr->fillEventPtrs( _samplePairList_ );
     }
     _buffer_.statLikelihood += _jointProbabilityPtr_->eval( _samplePairList_ );
@@ -252,6 +254,20 @@ void LikelihoodInterface::writeEventRates(const GenericToolbox::TFilePath& saveD
 
   LogInfo << "Writing data event rates..." << std::endl;
   _dataPropagator_.writeEventRates( saveDir_.getSubDir("data") );
+}
+
+void LikelihoodInterface::writeStatCovarianceMatrix(TDirectory* saveDir_) const {
+
+  if( _jointProbabilityPtr_->getType()=="StatCovariance" ){
+    LogInfo << "Writing Statistical Covariance matrix" << std::endl;
+
+    std::shared_ptr<JointProbability::StatCovariance> statCovPtr = std::dynamic_pointer_cast<JointProbability::StatCovariance>(_jointProbabilityPtr_);
+
+    GenericToolbox::writeInTFile(GenericToolbox::mkdirTFile(saveDir_, "preFit/StatCov"), statCovPtr->Cov_Data_Nominal, "Cov_Data_Nominal");
+    GenericToolbox::writeInTFile(GenericToolbox::mkdirTFile(saveDir_, "preFit/StatCov"), statCovPtr->Cov_MC_Nominal, "Cov_MC_Nominal");
+
+  }
+
 }
 
 // print
