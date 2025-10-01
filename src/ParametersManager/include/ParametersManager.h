@@ -86,6 +86,7 @@ private:
   // config
   bool _reThrowParSetIfOutOfPhysical_{true};
   bool _throwToyParametersWithGlobalCov_{false};
+  bool _DoNotThrowSignalTemplateParameter_{false};
   TTree *_ParThrowTree{nullptr};
   std::vector<GenericToolbox::RawDataArray> thrownParameterValues{};
   JsonType _parameterSetListConfig_{};

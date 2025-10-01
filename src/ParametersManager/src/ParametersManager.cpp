@@ -23,6 +23,7 @@ void ParametersManager::configureImpl(){
   GenericToolbox::Json::fillValue(_config_, _throwToyParametersWithGlobalCov_, "throwToyParametersWithGlobalCov");
   GenericToolbox::Json::fillValue(_config_, _reThrowParSetIfOutOfPhysical_, {{"reThrowParSetIfOutOfBounds"},{"reThrowParSetIfOutOfPhysical"}});
   GenericToolbox::Json::fillValue(_config_, _parameterSetListConfig_, "parameterSetList");
+  GenericToolbox::Json::fillValue(_config_, _DoNotThrowSignalTemplateParameter_, "DoNotThrowSignalTemplateParameter");
 
   LogDebugIf(GundamGlobals::isDebug()) << _parameterSetListConfig_.size() << " parameter sets are defined." << std::endl;
 
@@ -159,9 +160,11 @@ void ParametersManager::throwParametersFromParSetCovariance(){
 
     LogContinueIf( not parSet.isEnabledThrowToyParameters(), "Toy throw is disabled for " << parSet.getName() );
 
-    // 25.09.29) J. KIM Hacked this to NOT throw signal template parameters
-    bool IsTemplate = (parSet.getName().rfind("Template Parameter", 0) == 0);
-    LogContinueIf( IsTemplate, "Toy throw is disabled for template parameters: " << parSet.getName() );
+    if(_DoNotThrowSignalTemplateParameter_){
+      // 25.09.29) J. KIM Hacked this to NOT throw signal template parameters
+      bool IsTemplate = (parSet.getName().rfind("Template Parameter", 0) == 0);
+      LogContinueIf( IsTemplate, "Toy throw is disabled for template parameters: " << parSet.getName() );
+    }
 
     if( parSet.getPriorCovarianceMatrix() != nullptr ){
 /*
