@@ -427,10 +427,13 @@ bool DialCollection::initializeNormDialsWithParBinning() {
   _dialResponseSupervisorList_[0].setMinResponse( GenericToolbox::Json::fetchValue(_config_, {{"minDialResponse"}, {"minimumSplineResponse"}}, double(0.)) );
   _dialResponseSupervisorList_[0].setMaxResponse( GenericToolbox::Json::fetchValue(_config_, "maxDialResponse", _maxDialResponse_) );
 
+  _globalDialType_ = GenericToolbox::Json::fetchValue(_config_, {{"dialsType"}, {"dialType"}}, "Norm");
+  LogInfo << "DialType = " << _globalDialType_ << std::endl;
+
   _dialBaseList_.reserve( _dialBinSet_.getBinList().size() );
   DialBaseFactory factory;
   for(const auto & bin : _dialBinSet_.getBinList()) {
-    _dialBaseList_.emplace_back(DialBaseObject(factory.makeDial(getTitle(), "Normalization","",nullptr,false)));
+    _dialBaseList_.emplace_back(DialBaseObject(factory.makeDial(getTitle(), _globalDialType_,"",nullptr,false)));
   }
 
   return true;
@@ -697,6 +700,13 @@ bool DialCollection::initializeDialsWithDefinition() {
     _isEventByEvent_ = false;
     _dialBaseList_.emplace_back(
         DialBaseObject(dialBaseFactory.makeDial(getTitle(),"Normalization","",nullptr,false)));
+  }
+  else if( _globalDialType_ == "lnN" ) {
+    // This dial collection is a log-normalization, so there is a single dial.
+    // Create it here.
+    _isEventByEvent_ = false;
+    _dialBaseList_.emplace_back(
+        DialBaseObject(dialBaseFactory.makeDial(getTitle(),"lnN","",nullptr,false)));
   }
   else if( _globalDialType_ == "Formula" or _globalDialType_ == "RootFormula" ){
     // This dial collection calculates a function of the parameter values, so it

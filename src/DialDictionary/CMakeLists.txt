@@ -30,6 +30,7 @@ set( SRCFILES
     # DialFactories
     DialFactories/src/DialBaseFactory.cpp
     DialFactories/src/NormDialBaseFactory.cpp
+    DialFactories/src/LogNormDialBaseFactory.cpp
     DialFactories/src/GraphDialBaseFactory.cpp
     DialFactories/src/SplineDialBaseFactory.cpp
     DialFactories/src/SurfaceDialBaseFactory.cpp
@@ -47,6 +48,7 @@ set( HEADERS
     DialDefinitions/include/DialBase.h
 
     DialDefinitions/include/Norm.h
+    DialDefinitions/include/LogNorm.h
     DialDefinitions/include/Shift.h
     DialDefinitions/include/Tabulated.h
 
@@ -68,6 +70,7 @@ set( HEADERS
     # DialFactories
     DialFactories/include/DialBaseFactory.h
     DialFactories/include/NormDialBaseFactory.h
+    DialFactories/include/LogNormDialBaseFactory.h
     DialFactories/include/GraphDialBaseFactory.h
     DialFactories/include/SplineDialBaseFactory.h
     DialFactories/include/SurfaceDialBaseFactory.h

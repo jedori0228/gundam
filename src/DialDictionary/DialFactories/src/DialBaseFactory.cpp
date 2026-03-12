@@ -1,5 +1,6 @@
 #include "DialBaseFactory.h"
 #include "NormDialBaseFactory.h"
+#include "LogNormDialBaseFactory.h"
 #include "GraphDialBaseFactory.h"
 #include "SplineDialBaseFactory.h"
 #include "SurfaceDialBaseFactory.h"
@@ -24,6 +25,10 @@ DialBase* DialBaseFactory::makeDial(const std::string& dialTitle_,
 
   if (dialType_ == "Norm" || dialType_ == "Normalization") {
     NormDialBaseFactory factory;
+    dialBase.reset(factory.makeDial(dialTitle_, dialType_, dialSubType_, dialInitializer_, useCachedDial_));
+  }
+  else if (dialType_ == "lnN") {
+    LogNormDialBaseFactory factory;
     dialBase.reset(factory.makeDial(dialTitle_, dialType_, dialSubType_, dialInitializer_, useCachedDial_));
   }
   else if (dialType_ == "Graph") {
