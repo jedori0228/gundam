@@ -42,6 +42,8 @@ public:
   void printConfiguration() const;
   [[nodiscard]] std::string getSampleBreakdown() const;
 
+  void throwStatErrors_SimFitToy(bool ThrowMCEvent, bool ThrowBinContent);
+
 private:
   // config
   std::vector<Sample> _sampleList_;
